@@ -10,9 +10,23 @@ rotation through active and passive health checks, retries idempotent
 requests on a different upstream, and reloads its configuration on `SIGHUP`
 without closing the listener.
 
+## Screenshots
+
+![Requests distributed by each strategy](docs/screenshots/strategies.png)
+
+Real requests through one switchyard instance in front of three small test backends (not production traffic). Round-robin rotates, the 3:1:1 weights give backend-a 15 of 25 requests, least-connections sends little to the deliberately slow backend-a, and consistent hashing keeps each `X-User-ID` on one backend.
+
+![Health-check ejection and recovery](docs/screenshots/health-ejection.png)
+
+backend-c starts failing `/healthz`. After the unhealthy threshold it drops out of the rotation, and it comes back after the healthy threshold once the check passes again. The log shows both transitions.
+
+![Prometheus metrics on the admin port](docs/screenshots/metrics.png)
+
+The admin port's `/metrics` output while backend-c is failing its health check: `switchyard_upstream_up` is 0 for that upstream in the `rr` pool.
+
 ## Why
 
-Production proxies such as nginx, HAProxy and Envoy are large. switchyard is
+Proxies such as nginx, HAProxy and Envoy are large. switchyard is
 small enough to read in an afternoon while still handling the parts that
 matter in practice: health state that both probes and live traffic feed,
 retries that never repeat a non-idempotent request, a consistent-hash ring
